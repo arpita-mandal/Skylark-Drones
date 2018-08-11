@@ -82,7 +82,12 @@ a {
     <div class='label'>6.5</div>
     <div class='label'>7</div>
   </div>
-</div>
+  </div>
+  <div class='session' id='sliderbar'>
+  <h2>Hour: <label id='active-time'>12PM</label></h2>
+  <input id='slider' class='row' type='range' min='0' max='23' step='1' value='12' />
+  </div>
+
  </div>
 
 
@@ -92,8 +97,8 @@ a {
 var map = new mapboxgl.Map({
   container: 'map', // container element id
   style: 'mapbox://styles/mapbox/light-v9',
-  center: [-74.0059, 40.7128], // initial map center in [lon, lat]
-  zoom: 12
+  center: [77.2119140625,28.603814407841327], // initial map center in [lon, lat]
+  zoom: 2
 });
 
  map.on('load', function() {
@@ -102,15 +107,16 @@ var map = new mapboxgl.Map({
       type: 'circle',
       source: {
         type: 'geojson',
-        data: './earthquake.geojson' // replace this with the url of your own geojson
+        data: './map1.geojson' // replace this with the url of your own geojson
       },
       paint: {
         'circle-radius': [
           'interpolate',
           ['linear'],
           ['number', ['get', 'mag']],
-          0, 4,
-          5, 24
+          0, 10,
+          605, 24
+          
         ],
         'circle-color': [
           'interpolate',
@@ -135,9 +141,59 @@ var map = new mapboxgl.Map({
 
         ],
         'circle-opacity': 0.8
-      }
+      },
+     filter: ['==', ['number', ['get', 'time']], 12],
+    
     }, 'admin-2-boundaries-dispute');
+    
+    document.getElementById('slider').addEventListener('input', function(e) {
+  var time = parseInt(e.target.value);
+  // update the map
+  map.setFilter('mag', ['==', ['number', ['get', 'time']], time]);
+
+  // converting 0-23 time to AMPM format
+  var ampm = time >= 12 ? 'PM' : 'AM';
+  var time12 = time % 12 ? time % 12 : 12;
+
+  // update text in the UI
+  document.getElementById('active-time').innerText = time12 + ampm;
+});
+  
+  // When a click event occurs on a feature in the places layer, open a popup at the
+    // location of the feature, with description HTML from its properties.
+    map.on('click', 'mag', function (e) {
+        var coordinates = e.features[0].geometry.coordinates.slice();
+        var description = e.features[0].properties.place;
+
+        // Ensure that if the map is zoomed out such that multiple
+        // copies of the feature are visible, the popup appears
+        // over the copy being pointed to.
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+            coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+
+        new mapboxgl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(description)
+            .addTo(map);
+    });
+
+    // Change the cursor to a pointer when the mouse is over the places layer.
+    map.on('mouseenter','mag', function () {
+        map.getCanvas().style.cursor = 'pointer';
+    });
+
+    // Change it back to a pointer when it leaves.
+    map.on('mouseleave', 'mag', function () {
+        map.getCanvas().style.cursor = '';
+    });
+
+    
+// Add zoom and rotation controls to the map.
+map.addControl(new mapboxgl.NavigationControl());
+
   });
+
 </script>
 
 </body>
