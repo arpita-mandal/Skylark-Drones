@@ -11,30 +11,25 @@ body {
   padding: 0;
   font-family: 'Helvetica Neue', Helvetica, Arial, Sans-serif;
 }
-
 #map {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 100%;
 }
-
 h1 {
   font-size: 20px;
   line-height: 30px;
 }
-
 h2 {
   font-size: 14px;
   line-height: 20px;
   margin-bottom: 10px;
 }
-
 a {
   text-decoration: none;
   color: #2dc4b2;
 }
-
 #console {
   position: absolute;
   width: 240px;
@@ -45,21 +40,91 @@ a {
 .session {
   margin-bottom: 20px;
 }
-
 .row {
   height: 12px;
   width: 100%;
 }
-
 .colors {
   background: linear-gradient(to right, #85C1E9, #2874A6, #1F618D, #2E4053, #212F3C , #17202A);
   margin-bottom: 5px;
 }
-
 .label {
   width: 15%;
   display: inline-block;
   text-align: center;
+}
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    -webkit-animation-name: fadeIn; /* Fade in the background */
+    -webkit-animation-duration: 0.4s;
+    animation-name: fadeIn;
+    animation-duration: 0.4s
+}
+
+/* Modal Content */
+.modal-content {
+    position: fixed;
+    bottom: 0;
+    background-color: #fefefe;
+    width: 100%;
+    -webkit-animation-name: slideIn;
+    -webkit-animation-duration: 0.4s;
+    animation-name: slideIn;
+    animation-duration: 0.4s
+}
+
+/* The Close Button */
+.close {
+    color: white;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-header {
+    padding: 2px 16px;
+    background-color: #283747;
+    color: white;
+}
+
+.modal-body {padding: 2px 16px;}
+
+
+/* Add Animation */
+@-webkit-keyframes slideIn {
+    from {bottom: -300px; opacity: 0} 
+    to {bottom: 0; opacity: 1}
+}
+
+@keyframes slideIn {
+    from {bottom: -300px; opacity: 0}
+    to {bottom: 0; opacity: 1}
+}
+
+@-webkit-keyframes fadeIn {
+    from {opacity: 0} 
+    to {opacity: 1}
+}
+
+@keyframes fadeIn {
+    from {opacity: 0} 
+    to {opacity: 1}
 }
 </style>
 
@@ -87,20 +152,37 @@ a {
   <h2>Hour: <label id='active-time'>12PM</label></h2>
   <input id='slider' class='row' type='range' min='0' max='23' step='1' value='12' />
   </div>
+  <div class='session'>
+    <button id='myBtn'>Click for more information</button>
+  </div>
 
  </div>
+<div id="myModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="close">&times;</span>
+      <h4>Welcome to, Seismicity</h4>
+    </div>
+    <div class="modal-body">
+      <p>Find information about real-time earthquakes that occured over a period of 7 days (4 August'18- 10 August'18).</p>
+      <p>Click on the epicentre to know more about the geographic point.</p>
+    </div>
+    
+  </div>
+
+</div>
 
 
 <script>
   mapboxgl.accessToken = 'pk.eyJ1IjoiMTUwNjExMyIsImEiOiJjamtuMm92eTkyaWVzM3dvOWs4ZXk0azZiIn0.qZ7XK-LNvGvOQs3msyyq1Q';
-
 var map = new mapboxgl.Map({
   container: 'map', // container element id
   style: 'mapbox://styles/mapbox/light-v9',
   center: [77.2119140625,28.603814407841327], // initial map center in [lon, lat]
   zoom: 2
 });
-
  map.on('load', function() {
     map.addLayer({
       id: 'mag',
@@ -138,7 +220,6 @@ var map = new mapboxgl.Map({
           5.8, '#34495E',
           5.9, '#2E4053',
           6.9, '#17202A'
-
         ],
         'circle-opacity': 0.8
       },
@@ -150,11 +231,9 @@ var map = new mapboxgl.Map({
   var time = parseInt(e.target.value);
   // update the map
   map.setFilter('mag', ['==', ['number', ['get', 'time']], time]);
-
   // converting 0-23 time to AMPM format
   var ampm = time >= 12 ? 'PM' : 'AM';
   var time12 = time % 12 ? time % 12 : 12;
-
   // update text in the UI
   document.getElementById('active-time').innerText = time12 + ampm;
 });
@@ -164,36 +243,56 @@ var map = new mapboxgl.Map({
     map.on('click', 'mag', function (e) {
         var coordinates = e.features[0].geometry.coordinates.slice();
         var description = e.features[0].properties.place;
-
         // Ensure that if the map is zoomed out such that multiple
         // copies of the feature are visible, the popup appears
         // over the copy being pointed to.
         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
             coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
         }
-
         new mapboxgl.Popup()
             .setLngLat(coordinates)
             .setHTML(description)
             .addTo(map);
     });
-
     // Change the cursor to a pointer when the mouse is over the places layer.
     map.on('mouseenter','mag', function () {
         map.getCanvas().style.cursor = 'pointer';
     });
-
     // Change it back to a pointer when it leaves.
     map.on('mouseleave', 'mag', function () {
         map.getCanvas().style.cursor = '';
     });
-
     
 // Add zoom and rotation controls to the map.
 map.addControl(new mapboxgl.NavigationControl());
+  
+  // Get the modal
+var modal = document.getElementById('myModal');
+
+// Get the button that opens the modal
+var btn = document.getElementById("myBtn");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks the button, open the modal 
+btn.onclick = function() {
+    modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() {
+    modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
 
   });
-
 </script>
 
 </body>
